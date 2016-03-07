@@ -105,15 +105,55 @@
 					use pocketmine\plugin\PluginBase; <br> 
 					class Main extends PluginBase{ <br> 
           public function onLoad(){ <br>
-                    $this->getLogger()->info("Plugin Loading"); <br>
+                    $this->getLogger()->info("The Plugin is Loading..."); <br>
           } <br>
           public function onEnable(){ <br>
-                    $this->getLogger()->info("Enabled Plugin"); <br>
+                    $this->getLogger()->info("The Plugin has been Enabled!"); <br>
           } <br>
           public function onDisable(){ <br>
-                    $this->getLogger()->info("Plugin Disabled"); <br>
+                    $this->getLogger()->info("The Plugin has been Disabled!"); <br>
           } <br>
 }</h4> <br> I hope you like this so far!
+<div class="textwidget"><br>7. Now we are going to change some of the earlier coding to allow more functionality (look at example below step ) This allows color, and many more features.</div>
+<div class="textwidget"><br>8. Now, we add some code that will change the message when someone joins the server. " public function onJoin(PlayerJoinEvent $event){
+   $player = $event->getPlayer();
+   $name = $player->getName();
+   $event->setJoinMessage(TextFormat::ORANGE."$name Joined The Amazing Server! Yay!");"</div>
+					<br> So far, you have typed <h4 class="server-name-card"> 
+?php <br>
+
+namespace SQPE\plugin; <br>
+
+use pocketmine\plugin\PluginBase; <br>
+use pocketmine\event\Listener; <br>
+use pocketmine\event\player\PlayerJoinEvent; <br>
+use pocketmine\utils\TextFormat; <br>
+
+class Main extends PluginBase implements Listener{ <br>
+          public function onLoad(){ <br>
+                    $this->getLogger()->info("The Plugin is Loading..."); <br>
+          } <br>
+     public function onEnable(){ <br>
+          $this->getServer()->getPluginManager()->registerEvents($this,$this); <br>
+          $this->getLogger()->info("The Plugin has been Enabled!"); <br>
+     } <br>
+               public function onDisable(){ <br>
+                    $this->getLogger()->info("The Plugin has been Disabled!");  <br>
+          } <br>
+     public function onJoin(PlayerJoinEvent $event){ <br>
+          $player = $event->getPlayer(); <br>
+          $name = $player->getName(); <br>
+          $this->getServer()->broadcastMessage(TextFormat::ORANGE."$name Joined The Amazing Server! Yay!"); <br>
+     } <br> Good job! This is a lot of code! Not enough, though...
+<div class="textwidget"><br>9. Time to add commands! We add two more "use" statements, as well as the whole command! The code options are below.</div>
+<br> The simple option: <br> public function onCommand(CommandSender $sender, Command $cmd, $label, array $args){ <br>
+          if($cmd->getName() == "send"){<br>
+               $sender->sendMessage("You have sent a message!");<br>
+          } <br>
+          return true; 
+     }
+}
+   
 				</div>
 			</div>
 			<!-- /.container -->
