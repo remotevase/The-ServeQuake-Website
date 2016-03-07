@@ -96,7 +96,24 @@
 					<div class="textwidget"><br>2. Next Insert Your namespace using the format of Format = (AuthorName)\(Pluginname): "namespace SQPE\Plugin;" </div>
 					<div class="textwidget"><br>3. Enter "use" statements, such as: "use pocketmine\plugin\PluginBase;"</div>
 					<div class="textwidget"><br>4. Type the class: "class Main extends PluginBase{" The format should be "class (filename excluding '.php') extends PluginBase{" </div>
-					So far, you have typed <h4 class="server-name-card"> ?php <br> namespace SQPE\Plugin <br> use pocketmine\plugin\PluginBase; <br> class Main extends PluginBase{ </h4> <br> You must be so proud of yourself!
+					<br> So far, you have typed <h4 class="server-name-card"> ?php <br> namespace SQPE\Plugin <br> use pocketmine\plugin\PluginBase; <br> class Main extends PluginBase{ </h4> <br> You must be so proud of yourself!
+					<div class="textwidget"><br>5. Type the loading messages: "public function onLoad(){" (then hit enter, and type) "$this->getLogger()->info("The Plugin is Loading...");"</div>
+					<div class="textwidget"><br>6. You can do a similar thing with enabling and disabling (public function onEnable(){ $this->getLogger()->info("The Plugin has been Enabled!")) and (public function on Disable(){ $this->getLogger()->info("The Plugin has been Disabled!"))</div>
+					<br> So far, you have typed <h4 class="server-name-card"> 
+					?php <br> 
+					namespace SQPE\Plugin <br> 
+					use pocketmine\plugin\PluginBase; <br> 
+					class Main extends PluginBase{ <br> 
+          public function onLoad(){ <br>
+                    $this->getLogger()->info("Plugin Loading"); <br>
+          } <br>
+          public function onEnable(){ <br>
+                    $this->getLogger()->info("Enabled Plugin"); <br>
+          } <br>
+          public function onDisable(){ <br>
+                    $this->getLogger()->info("Plugin Disabled"); <br>
+          } <br>
+}</h4> <br> I hope you like this so far!
 				</div>
 			</div>
 			<!-- /.container -->
