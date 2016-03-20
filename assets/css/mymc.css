@@ -326,9 +326,9 @@ fieldset[disabled] .navbar-default .btn-link:focus {
   color: #ccc;
 }
 .staff-member {
-  height: 150px;
-  width: 150px;
-  padding-top: 100px;
+  height: 300px;
+  width: 300px;
+  padding-top: 200px;
   display: inline-block;
   margin-right: 9px;
   margin-bottom: 20px;
