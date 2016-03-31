@@ -53,7 +53,8 @@ body{
   background-image: url(http://i2.wp.com/geekdad.com/wp-content/uploads/2015/10/minecraft.png?resize=1000%2C500);
   background-position: bottom; 
   text-shadow: 2px 2px rgba(0,0,0,.4);
-  background-repeat:none;
+  background-repeat: no-repeat;
+  background-size: cover;
   color: #fff;
 }
 .head {
