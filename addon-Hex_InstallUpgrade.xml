@@ -1,0 +1,1888 @@
+<?xml version="1.0" encoding="utf-8"?>
+<addon addon_id="Hex_InstallUpgrade" title="[#] Install and Upgrade" version_string="1.4.13" version_id="1443450265" url="http://xf.hexthemes.com/" install_callback_class="Hex_Install" install_callback_method="install" uninstall_callback_class="Hex_Install" uninstall_callback_method="uninstall">
+  <admin_navigation>
+    <navigation navigation_id="outdatedAddOns" parent_navigation_id="addOns" display_order="500" link="add-ons/outdated" admin_permission_id="addOn" debug_only="0" hide_no_children="0"/>
+    <navigation navigation_id="rebuildAddOnCaches" parent_navigation_id="addOns" display_order="1000" link="add-ons/rebuild-caches" admin_permission_id="addOn" debug_only="0" hide_no_children="0"/>
+    <navigation navigation_id="rebuildXenForo" parent_navigation_id="toolsGroups" display_order="1000" link="upgrade/rebuild" admin_permission_id="upgradeXenForo" debug_only="0" hide_no_children="0"/>
+    <navigation navigation_id="storedCredentials" parent_navigation_id="addOns" display_order="1001" link="add-ons/stored-credentials" admin_permission_id="installUpgradeCreds" debug_only="0" hide_no_children="0"/>
+    <navigation navigation_id="upgrade" parent_navigation_id="setup" display_order="9999" link="upgrade" admin_permission_id="" debug_only="0" hide_no_children="1"/>
+    <navigation navigation_id="upgradeXenForo" parent_navigation_id="upgrade" display_order="1" link="upgrade" admin_permission_id="upgradeXenForo" debug_only="0" hide_no_children="0"/>
+  </admin_navigation>
+  <admin_permissions>
+    <admin_permission admin_permission_id="installUpgradeCreds" display_order="3000"/>
+  </admin_permissions>
+  <admin_style_properties/>
+  <admin_templates>
+    <template title="hex_addon_download_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_download_add_on_installupgrade}: {$addOn.title}</xen:title>
+<xen:h1>{xen:phrase hex_download_add_on_installupgrade}</xen:h1>
+
+<xen:navigation>
+	<xen:breadcrumb href="{xen:adminlink 'add-ons/edit', $addOn}">{$addOn.title}</xen:breadcrumb>
+</xen:navigation>
+
+<xen:require css="delete_confirmation.css" />
+
+<xen:form action="{xen:adminlink 'add-ons/download', $addOn}" class="deleteConfirmForm formOverlay">
+
+	<xen:textboxunit label="{xen:phrase version_string}:" name="version_string" value="{$addOn.version_string}">
+		<xen:explain>{xen:phrase this_string_will_be_displayed_to_end_user}</xen:explain>
+	</xen:textboxunit>
+	
+	<xen:submitunit save="{xen:phrase hex_download_add_on_installupgrade}" />
+	
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_addon_edit_url_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_edit_url_installupgrade}: {$addOn.title}</xen:title>
+
+<xen:form action="{xen:adminlink 'add-ons/save-url', $addOn}" upload="true">
+	<xen:textboxunit label="{xen:phrase hex_upgrade_url_installupgrade}:" name="install_upgrade_filename" value="{$addOn.install_upgrade_filename}" />
+		
+	<xen:submitunit save="{xen:phrase hex_edit_url_installupgrade}" />
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_addon_list_controls_installupgrade"><![CDATA[<li><a href="{xen:adminlink 'add-ons/rebuild', $addOn}">{xen:phrase hex_rebuild_add_on_installupgrade}</a></li>
+<li><a href="{xen:adminlink 'add-ons/download', $addOn}">{xen:phrase hex_download_add_on_installupgrade}</a></li>]]></template>
+    <template title="hex_addon_list_error_control_installupgrade"><![CDATA[<xen:if is="{$addOn.install_upgrade_error}">
+<a href="{xen:adminlink add-ons/edit-url, $addOn}" class="secondaryContent OverlayTrigger" style="background-color: #c0392b; color: #FFF;">{xen:phrase error}!</a>
+</xen:if>]]></template>
+    <template title="hex_addon_list_toggle_installupgrade"><![CDATA[<script type="text/javascript">
+<!--
+$(function()
+{
+	$('#UninstallAddOns').click(function(e)
+	{
+		if ($('#UpgradeForm').is(':visible')) {
+			return false;
+		}
+			
+		$('label.selectListItem, #UninstallForm, #UninstallHint').toggle();
+		
+		$('.listItem .toggler, .listItem .delete, .togglerAll, .toolsCtrl').toggle();
+		
+		if ($('#UninstallForm').is(':visible')) {
+			$('#UpgradeAddOns').addClass('disabled');
+		} else {
+			$('#UpgradeAddOns').removeClass('disabled');
+		}
+		
+		return false;
+	});
+	
+	$('#UninstallForm').submit(function(e)
+	{
+		var $UninstallForm= $('#UninstallForm');
+		
+		$UninstallForm.find('input:hidden.temp').remove();
+		
+		$('.FilterList').find('.selectListItem > input:checkbox').each(function()
+		{
+			if (this.checked && this.name == 'addOnId[]')
+			{
+				$UninstallForm.append('<input type="hidden" class="temp" name="addon_ids[]" value="' + this.value + '" />');
+			}
+		});
+		
+		return true;
+	});
+	
+	$('#UpgradeAddOns').click(function(e)
+	{
+		if ($('#UninstallForm').is(':visible')) {
+			return false;
+		}
+		
+		$('label.selectListItem, #UpgradeForm, #UpgradeHint').toggle();
+		
+		$('.listItem .toggler, .listItem .delete, .togglerAll, .toolsCtrl').toggle();
+		
+		$("label.selectListItem input").attr("checked", false);
+		
+		if ($('#UpgradeForm').is(':visible')) {
+			$('#UninstallAddOns').addClass('disabled');
+			$('label.selectListItem input').attr("disabled", true);
+			$('li.canUpgrade label.selectListItem input').removeAttr("disabled");
+		} else {
+			$('#UninstallAddOns').removeClass('disabled');
+			$('label.selectListItem input').removeAttr("disabled");
+		}
+		
+		return false;
+	});
+	
+	$('#UpgradeForm').submit(function(e)
+	{
+		var $UpgradeForm= $('#UpgradeForm');
+		
+		$UpgradeForm.find('input:hidden.temp').remove();
+		
+		$('.FilterList').find('.selectListItem > input:checkbox').each(function()
+		{
+			if (this.checked && this.name == 'addOnId[]')
+			{
+				$UpgradeForm.append('<input type="hidden" class="temp" name="addon_ids[]" value="' + this.value + '" />');
+			}
+		});
+		
+		return true;
+	});
+});
+//-->
+</script>
+
+<style type="text/css">
+<!--
+.FilterList .selectListItem,
+#UninstallHint,
+#UninstallForm,
+#UpgradeHint,
+#UpgradeForm
+{
+	display: none;
+}
+-->
+</style>
+
+<xen:form class="section" id="UninstallForm" action="{xen:adminlink add-ons/delete}">
+	<input type="submit" class="button" value="{xen:phrase hex_uninstall_addons_installupgrade}" />
+	
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>
+
+<xen:form class="section" id="UpgradeForm" action="{xen:adminlink add-ons/upgrade}">
+	<input type="submit" class="button" value="{xen:phrase hex_upgrade_addons_installupgrade}" />
+	
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_addon_login_installupgrade"><![CDATA[<xen:title>{xen:if $addOn, {xen:phrase upgrade_add_on}, {xen:phrase install_new_add_on}}</xen:title>
+
+<xen:form action="{xen:if $addOn, {xen:adminlink 'add-ons/upgrade', $addOn}, {xen:adminlink 'add-ons/install'}}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase install_add_on}" />
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="original_server_file" value="{$original_server_file}" />
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_addon_stored_credentials_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_stored_credentials_installupgrade}</xen:title>
+
+<xen:if is="!{$token} && {$canEncrypt}">
+	<div class="importantMessage">
+		{xen:phrase hex_to_store_encrypted_passwords_log_out_installupgrade}
+	</div>
+</xen:if>
+
+<xen:if is="{$storedCredentials}">
+	<table class="dataTable">
+	<col  />
+	<col style="width: 20%" />
+	<col style="width: 20%" />
+	<col style="width: 1%" />
+	<col style="width: 1%" />
+	<tr class="dataRow">
+		<th>{xen:phrase hex_url_installupgrade}</th>
+		<th>{xen:phrase user_name}</th>
+		<th>{xen:phrase password}</th>
+		<th>{xen:phrase hex_encrypted_installupgrade}</th>
+		<th>&nbsp;</th>
+	</tr>
+	<xen:foreach loop="$storedCredentials" value="$storedCredential">
+		<tr class="dataRow">
+			<td>{$storedCredential.host}{$storedCredential.path}</td>
+			<td>{$storedCredential.username}</td>
+			<td><xen:if is="{$storedCredential.password}">********</xen:if></td>
+			<td>{xen:if '{$storedCredential.user_id}', {xen:phrase yes}, {xen:phrase no}}</td>
+			<td class="dataOptions">
+				<a href="{xen:adminlink add-ons/stored-credentials-edit, '', 'login_id={$storedCredential.login_id}'}" class="secondaryContent OverlayTrigger">{xen:phrase edit}</a>
+				<a href="{xen:adminlink add-ons/stored-credentials-delete, '', 'login_id={$storedCredential.login_id}'}" class="secondaryContent OverlayTrigger">{xen:phrase delete}</a>
+			</td>
+		</tr>
+	</xen:foreach>
+	<tr>
+		<td colspan="5" class="sectionFooter">{xen:phrase showing_x_of_y_items, 'count={xen:count $storedCredentials}', 'total={xen:count $storedCredentials}'}</td>
+	</tr>
+	</table>
+<xen:else />
+	{xen:phrase no_results_found}
+</xen:if>]]></template>
+    <template title="hex_addon_stored_cred_delete_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_confirm_deletion_of_stored_credentials_installupgrade}: {$credential.host}{$credential.path}</xen:title>
+<xen:h1>{xen:phrase hex_confirm_deletion_of_stored_credentials_installupgrade}</xen:h1>
+
+<xen:require css="public:delete_confirmation.css" />
+
+<xen:form action="{xen:adminlink 'add-ons/stored-credentials-delete', '', 'login_id={$credential.login_id}'}" class="deleteConfirmForm formOverlay">
+
+	<p>{xen:phrase hex_please_confirm_want_to_delete_stored_credentials_installupgrade}:</p>
+	<strong><a href="{xen:adminlink 'add-ons/stored-credentials/edit', '', 'login_id={$credential.login_id}'}">{$credential.host}{$credential.path}</a></strong>
+
+	<xen:submitunit save="{xen:phrase hex_delete_stored_credentials_installupgrade}" />
+	<input type="hidden" name="_xfConfirm" value="1" />
+	
+</xen:form>]]></template>
+    <template title="hex_addon_stored_cred_edit_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_stored_credentials_installupgrade}</xen:title>
+
+<xen:form action="{xen:adminlink 'add-ons/stored-credentials-save'}" autocomplete="off">
+	<input style="display:none" type="text" name="fakeusernameremembered"/>
+	<input style="display:none" type="password" name="fakepasswordremembered"/>
+
+	<xen:textboxunit label="{xen:phrase hex_host_name_installupgrade}:" name="host" value="{$credential.host}" />
+	<xen:textboxunit label="{xen:phrase hex_path_installupgrade}:" name="path" value="{$credential.path}" />
+	<xen:textboxunit label="{xen:phrase user_name}:" name="username" value="{$credential.username}" />
+	<xen:textboxunit label="{xen:phrase password}:" name="password" type="password" value="{$credential.password}" />
+	
+	<xen:if is="{$canEncrypt}">
+		<xen:checkboxunit label="">
+			<xen:option name="encrypt" selected="true" label="{xen:phrase hex_encrypt_login_credentials_installupgrade}" />
+		</xen:checkboxunit>
+	</xen:if>
+	
+	<xen:submitunit save="{xen:phrase save_changes}" />
+	
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_broadcast_dismiss_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_dismiss_broadcast_installupgrade}</xen:title>
+
+<xen:form action="{xen:adminlink 'add-ons/dismiss-broadcast'}" class="deleteConfirmForm formOverlay">
+
+	<p>{xen:phrase hex_are_you_sure_you_want_to_dismiss_broadcast_installupgrade}</p>
+
+	<xen:submitunit save="{xen:phrase hex_dismiss_broadcast_installupgrade}" />
+	<input type="hidden" name="_xfConfirm" value="1" />
+	
+</xen:form>]]></template>
+    <template title="hex_broadcast_installupgrade"><![CDATA[<xen:if is="{$broadcast.message} && !{$broadcast.dismiss}">
+	<xen:require js="js/hex/installupgrade/broadcast.js" />
+	<xen:require css="hex_broadcast_installupgrade.css" />
+	<xen:require css="xenforo_dismiss.css" />
+	<p id="HexBroadcast" class="DismissParent {$broadcast.class}">
+		{xen:raw $broadcast.message}
+		<xen:if is="{$xenOptions.hex_installUpgrade_showLastBroadcastDate}">
+			<span class="lastBroadcast">{xen:phrase hex_last_update_installupgrade}: {xen:datetime $broadcast.time}</span>
+		</xen:if>
+		<a href="{xen:adminlink add-ons/dismiss-broadcast}" class="DismissCtrl">{xen:phrase hex_dismiss_broadcast_installupgrade}</a>
+	</p>
+</xen:if>]]></template>
+    <template title="hex_broadcast_installupgrade.css"><![CDATA[#HexBroadcast
+{
+	position: relative;
+}
+
+	#HexBroadcast .lastBroadcast
+	{
+		font-size: 9px;
+		display: block;
+	}
+
+	#HexBroadcast.importantMessage .lastBroadcast
+	{
+		color: {xen:property secondaryLight};
+	}
+		
+	#HexBroadcast.secondaryContent
+	{
+		margin: 10px 0;
+		text-align: center;
+		padding: 5px;
+		border-radius: 5px;
+		border: solid 1px {xen:property primaryLighter};
+		color: {xen:property primaryMedium};
+	}
+	
+		#HexBroadcast.secondaryContent .lastBroadcast
+		{
+			color: {xen:property primaryLight};
+		}
+		
+	<xen:if is="!{$xenOptions.hex_installUpgrade_overrideNoDismiss}">
+	#HexBroadcast.noDismiss .DismissCtrl
+	{
+		display: none;
+	}
+	</xen:if>
+	
+#HexBroadcast.DismissParent .DismissCtrl
+{
+	top: 5px;
+}]]></template>
+    <template title="hex_choose_xml_addon_installupgrade"><![CDATA[<xen:title>{xen:if $addOnId, {xen:phrase upgrade_add_on}, {xen:phrase install_new_add_on}}</xen:title>
+
+<xen:form action="{xen:if $addOnId, {xen:adminlink 'add-ons/upgrade'}, {xen:adminlink 'add-ons/install'}}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_hotspot_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_hotspots_hotspots}</xen:title>
+
+<xen:form action="{xen:adminlink hotspots/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="node_id" value="{$node_id}">
+	<input type="hidden" name="overwrite" value="{$overwrite}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_language_installupgrade"><![CDATA[<xen:title>{xen:phrase import_language}</xen:title>
+
+<xen:form action="{xen:adminlink languages/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="parent_language_id" value="{$parentLanguageId}">
+	<input type="hidden" name="overwrite_language_id" value="{$overwriteLanguageId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_moderator_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_moderators_moderators}</xen:title>
+
+<xen:form action="{xen:adminlink moderators/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="overwrite" value="{$overwrite}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_object_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_object_field}</xen:title>
+
+<xen:form action="{xen:adminlink object-fields/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_field_id" value="{$overwriteFieldId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_post_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_post_field}</xen:title>
+
+<xen:form action="{xen:adminlink post-fields/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_field_id" value="{$overwriteFieldId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_resource_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_resource_field}</xen:title>
+
+<xen:form action="{xen:adminlink resource-fields/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_field_id" value="{$overwriteFieldId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_smilie_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_smilies_smilieimporter}</xen:title>
+
+<xen:form action="{xen:adminlink smilies/import-xml}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="overwrite" value="{$overwrite}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_social_fo_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_social_forum_field}</xen:title>
+
+<xen:form action="{xen:adminlink social-forum-fields/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_field_id" value="{$overwriteFieldId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_style_installupgrade"><![CDATA[<xen:title>{xen:phrase import_style}</xen:title>
+
+<xen:form action="{xen:adminlink styles/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="parent_style_id" value="{$parentStyleId}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_thread_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_thread_field}</xen:title>
+
+<xen:form action="{xen:adminlink thread-fields/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_field_id" value="{$overwriteFieldId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_trophy_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_trophies_trophies}</xen:title>
+
+<xen:form action="{xen:adminlink trophies/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_user_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_user_field}</xen:title>
+
+<xen:form action="{xen:adminlink user-fields/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_field_id" value="{$overwriteFieldId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_user_group_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_user_group_usergroups}</xen:title>
+
+<xen:form action="{xen:adminlink user-groups/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="overwrite_user_group_id" value="{$overwriteUserGroupId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_choose_xml_user_upgrade_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_user_upgrade_userupgrades}</xen:title>
+
+<xen:form action="{xen:adminlink user-upgrades/import}">
+
+	<xen:radiounit label="{xen:phrase hex_xml_to_import_installupgrade}:" name="server_file">
+		<xen:foreach loop="$choices" value="$choice">
+			<xen:option label="{$choice.1}" value="{$choice.0}" hint="{$choice.0}" />
+		</xen:foreach>
+	</xen:radiounit>
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="overwrite_user_upgrade_id" value="{$overwriteUserUpgradeId}">
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_files_skipped_addon_installupgrade"><![CDATA[<xen:title>{xen:if $addOnId, {xen:phrase upgrade_add_on}, {xen:phrase install_new_add_on}}</xen:title>
+
+<xen:form action="{xen:if $addOnId, {xen:adminlink 'add-ons/upgrade'}, {xen:adminlink 'add-ons/install'}}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_language_installupgrade"><![CDATA[<xen:title>{xen:phrase import_language}</xen:title>
+
+<xen:form action="{xen:adminlink languages/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_object_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_object_field}</xen:title>
+
+<xen:form action="{xen:adminlink object-fields/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_post_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_post_field}</xen:title>
+
+<xen:form action="{xen:adminlink post-fields/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_resour_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_resource_field}</xen:title>
+
+<xen:form action="{xen:adminlink resource-fields/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_smilie_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_smilies_smilieimporter}</xen:title>
+
+<xen:form action="{xen:adminlink smilies/import-xml}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_social_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_social_forum_field}</xen:title>
+
+<xen:form action="{xen:adminlink social-forum-fields/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_style_installupgrade"><![CDATA[<xen:title>{xen:phrase import_style}</xen:title>
+
+<xen:form action="{xen:adminlink styles/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_thread_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_thread_field}</xen:title>
+
+<xen:form action="{xen:adminlink thread-fields/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_trophy_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_trophies_trophies}</xen:title>
+
+<xen:form action="{xen:adminlink trophies/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_user_field_installupgrade"><![CDATA[<xen:title>{xen:phrase import_user_field}</xen:title>
+
+<xen:form action="{xen:adminlink user-fields/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_user_group_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_user_group_usergroups}</xen:title>
+
+<xen:form action="{xen:adminlink user-groups/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_files_skipped_user_upgrade_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_user_upgrade_userupgrades}</xen:title>
+
+<xen:form action="{xen:adminlink user-upgrades/import}">
+
+	<xen:include template="hex_helper_files_skipped_installupgrade" />
+	
+</xen:form>]]></template>
+    <template title="hex_get_download_version_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_upgrade_xenforo_installupgrade}</xen:title>
+
+<xen:if is="{$versions}">
+	<xen:form action="{xen:adminlink 'upgrade/get-download-version'}">
+		<xen:selectunit label="{xen:phrase hex_version_installupgrade}:" name="download_version_id">
+			<xen:foreach loop="{$versions}" key="{$versionId}" value="{$version}">
+				<xen:option value="{$versionId}" selected="{$version.selected}">{$version.title}</xen:option>
+			</xen:foreach>
+		</xen:selectunit>
+					
+		<xen:submitunit save="{xen:phrase hex_upgrade_xenforo_installupgrade}" />	
+	
+		<input type="hidden" name="rebuild" value="{$rebuild}" />
+		<input type="hidden" name="_xfConfirm" value="1" />
+	</xen:form>
+<xen:else />
+	{xen:phrase hex_there_are_no_updated_versions_installupgrade}
+</xen:if>]]></template>
+    <template title="hex_get_license_key_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_upgrade_xenforo_installupgrade}</xen:title>
+
+<xen:form action="{xen:adminlink 'upgrade/get-license-key'}">
+	<xen:selectunit label="{xen:phrase hex_license_installupgrade}:" name="license_key">
+		<xen:foreach loop="{$licenses}" key="{$licenseKey}" value="{$license}">
+			<xen:option value="{$licenseKey}" selected="{$license.selected}">{$license.title}</xen:option>
+		</xen:foreach>
+	</xen:selectunit>
+				
+	<xen:submitunit save="{xen:phrase hex_upgrade_xenforo_installupgrade}" />
+
+	<input type="hidden" name="rebuild" value="{$rebuild}" />
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_helper_files_skipped_installupgrade"><![CDATA[	<div class="errorPanel">
+		<xen:if is="{$errors}">
+			<h3 class="errorHeading">{xen:phrase please_correct_following_errors}:</h3>
+			<div class="baseHtml errors">
+				<ol>
+				<xen:foreach loop="$errors" value="$error">
+					<li>{xen:raw $error}</li>
+				</xen:foreach>
+				</ol>
+			</div>
+		<xen:else />
+			<span class="errors">
+				{xen:phrase hex_files_were_skipped_installupgrade}
+			</span>
+		</xen:if>
+	</div>
+	
+	<xen:require css="filter_list.css" />
+	<xen:require js="js/xenforo/filter_list.js" />
+	
+	<div class="section">
+	
+		<h2 class="subHeading">
+			{xen:phrase hex_skipped_files_installupgrade}
+		</h2>
+		
+		<ol class="FilterList secondRow">
+			<xen:foreach loop="$skippedFiles" value="$file" i="{$i}">
+				<xen:listitem id="{$i}">
+					<xen:label>{$file}</xen:label>
+				</xen:listitem>
+			</xen:foreach>
+		</ol>
+	
+		<p class="sectionFooter">{xen:phrase showing_x_of_y_items, 'count=<span class="FilterListCount">{xen:count $skippedFiles}</span>', 'total={xen:count $skippedFiles}'}</p>
+	
+	</div>
+		
+	<xen:if is="is_array({$choices})">
+		<input type="hidden" name="addon_id" value="{$addOnId}" />
+		<xen:foreach loop="$choices" value="$choice" i="$i">
+			<input type="hidden" name="choice[$i][0]" value="{$choice.0}" />
+			<input type="hidden" name="choice[$i][1]" value="{$choice.1}" />
+		</xen:foreach>
+	<xen:else />
+		<input type="hidden" name="server_file" value="{$choices}" />
+	</xen:if>
+
+	<xen:submitunit save="{xen:phrase continue}..." />
+
+	<input type="hidden" name="_xfConfirm" value="1" />]]></template>
+    <template title="hex_hotspot_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_hotspots_hotspots}</xen:title>
+
+<xen:form action="{xen:adminlink 'hotspots/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="node_id" value="{$nodeId}">
+	<input type="hidden" name="overwrite" value="{$overwrite}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_import_fields_installupgrade"><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase import_from_uploaded_file}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple" />
+	</dd>
+</dl>
+<dl class="ctrlUnit">
+	<dt><label for="ctrl_server_file">{xen:phrase hex_import_from_file_on_server_installupgrade}:</label></dt>
+	<dd>
+		<input type="text" name="server_file" class="textCtrl" id="ctrl_server_file" />
+	</dd>
+</dl>]]></template>
+    <template title="hex_install_addons_multiple_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_install_multiple_add_ons_installupgrade}</xen:title>
+
+<xen:topctrl>
+	<a href="{xen:adminlink 'add-ons/install'}" class="button">+ {xen:phrase install_add_on}</a>
+	<xen:if is="{$debugMode}"><a href="{xen:adminlink 'add-ons/add'}" class="button">+ {xen:phrase create_add_on}</a></xen:if>
+</xen:topctrl>
+
+<xen:require css="filter_list.css" />
+<xen:require js="js/xenforo/filter_list.js" />
+
+<xen:require js="js/hex/installupgrade/install_multiple.js" />
+
+<xen:form action="{xen:adminlink add-ons/install}" class="section">
+
+	<xen:if is="{$addOns}">
+		<h2 class="subHeading">
+			<xen:include template="filter_list_controls" />
+			{xen:phrase add_ons}
+		</h2>
+
+		<ol class="FilterList">
+			<xen:foreach loop="$directoryAddOns" key="$addOnId" value="$_addOns">
+				<xen:if is="!{$addOns.{$addOnId}} || {$addOns.{$addOnId}.version_id} <= {$_addOns.0.version_id}">
+					<xen:set var="$addOnCount">{xen:calc '{$addOnCount} + 1'}</xen:set>
+					<xen:listitem id="{$addOnId}"
+						class="{xen:if {$addOns.{$addOnId}}, {xen:if '{$addOns.{$addOnId}.version_id} == {$_addOns.0.version_id}', 'currentVersion', 'upgrade'}, 'new'}"
+						selectable="true"
+						selectname="addon_ids[]"
+						selected="{xen:if '{$addOns.{$addOnId}.version_id} == {$_addOns.0.version_id}', '', 'true'}"
+						label="{xen:if {$addOns.{$addOnId}}, {$addOns.{$addOnId}.title}, {$_addOns.0.title}}"
+						snippet="{xen:if {$addOns.{$addOnId}}, {$addOns.{$addOnId}.version_string}, {$_addOns.0.version_string}}"
+						tooltip="{xen:if {$addOns.{$addOnId}}, {xen:phrase add_on_id_version_id, 'addon_id={$addOns.{$addOnId}.addon_id}', 'version_id={$addOns.{$addOnId}.version_id}'}, {xen:phrase add_on_id_version_id, 'addon_id={$_addOns.0.addon_id}', 'version_id={$_addOns.0.version_id}'}}">
+						<xen:html>
+							<input class="ServerFile" data-addonid="{$addOnId}" type="hidden" name="server_files[{$addOnId}]" value="{$_addOns.0.server_file}" />
+							<div class="Popup">
+								<a rel="Menu">{xen:phrase hex_available_versions_elipses_installupgrade}</a>
+								<div class="Menu">
+									<div class="primaryContent menuHeader"><h3>{xen:phrase hex_available_versions_elipses_installupgrade}</h3></div>
+									<ul class="secondaryContent blockLinksList ">
+										<xen:foreach loop="$_addOns" key="$i" value="$_addOn">
+											<xen:if is="!{$addOns.{$addOnId}} || {$addOns.{$addOnId}.version_id} <= {$_addOn.version_id}">
+												<label><input class="ServerFileRadio" data-addonid="{$addOnId}" type="radio" name="version_ids[{$addOnId}]" value="{$_addOn.server_file}"{xen:checked '{$i} == 0'}> {$_addOn.version_string} ({$_addOn.version_id})</label>
+											</xen:if>
+										</xen:foreach>					
+									</ul>
+								</div>
+							</div>
+						</xen:html>
+					</xen:listitem>
+				</xen:if>
+			</xen:foreach>
+		</ol>
+
+		<p class="sectionFooter">{xen:phrase showing_x_of_y_items, 'count=<span class="FilterListCount">{$addOnCount}</span>', 'total={xen:count $directoryAddOns}'}</p>
+
+		<div class="ctrlUnit">
+			<input type="submit" class="button" value="{xen:phrase hex_install_and_upgrade_add_ons_installupgrade}" />
+			
+			<input type="hidden" name="_xfConfirm" value="1" />
+		</div>
+	<xen:else />
+		<div class="noResults">{xen:phrase hex_there_are_no_addons_to_install_or_upgrade_installupgrade}</div>
+	</xen:if>
+</xen:form>
+
+<xen:if is="!{$xenOptions.hex_installUpgrade_upgradeFromInstall}">
+	<script type="text/javascript">
+	<!--
+	$(function()
+	{
+		$('label.selectListItem input').attr("disabled", true);
+		$('li.new label.selectListItem input').removeAttr("disabled");
+	});
+	//-->
+	</script>
+</xen:if>]]></template>
+    <template title="hex_invalid_token_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_upgrade_xenforo_installupgrade}</xen:title>
+
+<div class="errorPanel">
+	<h3 class="errorHeading">{xen:phrase please_correct_following_errors}:</h3>
+	<div class="baseHtml errors">
+		<ol><li>{xen:phrase hex_invalid_license_validation_token_installupgrade}</li></ol>
+	</div>
+</div>]]></template>
+    <template title="hex_language_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_language}</xen:title>
+
+<xen:form action="{xen:adminlink 'languages/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+		
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="parent_language_id" value="{$parentLanguageId}">
+	<input type="hidden" name="overwrite_language_id" value="{$overwriteLanguageId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_login_error_panel_helper_installupgrade"><![CDATA[<div class="errorPanel">
+	<xen:if is="{$errors}">
+		<h3 class="errorHeading">{xen:phrase please_correct_following_errors}:</h3>
+		<div class="baseHtml errors">
+			<ol>
+			<xen:foreach loop="$errors" value="$error">
+				<li>{xen:raw $error}</li>
+			</xen:foreach>
+			</ol>
+		</div>
+	<xen:else />
+		<span class="errors">
+			{xen:phrase hex_please_provide_login_for_x_installupgrade, 'host={$host}'}
+		</span>
+	</xen:if>
+</div>
+
+<input style="display:none" type="text" name="fakeusernameremembered"/>
+<input style="display:none" type="password" name="fakepasswordremembered"/>
+	
+<xen:textboxunit label="{xen:phrase user_name}:" name="username" value="{$username}" />
+<xen:textboxunit label="{xen:phrase password}:" name="password" type="password" value="{$password}" />
+
+<xen:if is="{$canEncrypt}">
+	<xen:checkboxunit label="">
+		<xen:option name="store_credentials" selected="{$xenOptions.hex_installUpgrade_storeCredentials}" label="{xen:phrase hex_save_login_credentials_installupgrade}" hint="{xen:phrase hex_if_selected_username_and_password_will_be_stored_installupgrade}">
+			<xen:checkbox>
+				<xen:option name="encrypt" selected="true" label="{xen:phrase hex_encrypt_login_credentials_installupgrade}" />
+			</xen:checkbox>
+		</xen:option>
+	</xen:checkboxunit>
+<xen:else />
+	<xen:checkboxunit label="">
+		<xen:option name="store_credentials" selected="{$xenOptions.hex_installUpgrade_storeCredentials}" label="{xen:phrase hex_save_login_credentials_installupgrade}" hint="{xen:phrase hex_if_selected_username_and_password_will_be_stored_installupgrade}" />
+	</xen:checkboxunit>
+</xen:if>]]></template>
+    <template title="hex_log_server_error_installupgrade.css"><![CDATA[.FilterList .unchecked,
+.FilterList .checked,
+.FilterList .suggested,
+.FilterList .solved
+{
+	padding: 0px;
+	width: 30px;
+	height: 30px;
+}
+
+	.FilterList.secondRow .unchecked,
+	.FilterList.secondRow .checked,
+	.FilterList.secondRow .suggested,
+	.FilterList.secondRow .solved
+	{
+		height: 44px;
+	}
+		
+	.FilterList .unchecked span,
+	.FilterList .checked span,
+	.FilterList .suggested span,
+	.FilterList .solved span
+	{
+		display: block;
+		background: transparent url('{xen:property imagePath}/xenforo/permissions/unset.png') no-repeat center center;
+		cursor: pointer;
+	
+		padding: 5px;
+		width: 20px;
+		height: 20px;
+		
+		overflow: hidden;
+		white-space: nowrap;
+		text-indent: -1000px;
+	}
+	
+		.FilterList .suggested span,
+		.FilterList .solved span
+		{
+			background: transparent url('{xen:property imagePath}/xenforo/permissions/allow.png') no-repeat center center;
+		}
+		
+		.FilterList .checked span
+		{
+			background: transparent url('{xen:property imagePath}/xenforo/permissions/revoke.png') no-repeat center center;
+		}		
+	
+		.FilterList.secondRow .unchecked span,
+		.FilterList.secondRow .checked span,
+		.FilterList.secondRow .suggested span,
+		.FilterList.secondRow .solved span
+		{
+			height: 34px;
+		}]]></template>
+    <template title="hex_moderator_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_moderators_moderators}</xen:title>
+
+<xen:form action="{xen:adminlink 'moderators/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+
+	<xen:submitunit save="{xen:phrase import}" />
+	
+	<input type="hidden" name="overwrite" value="{$overwrite}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_no_token_found_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_upgrade_xenforo_installupgrade}</xen:title>
+
+<div class="errorPanel">
+	<h3 class="errorHeading">{xen:phrase please_correct_following_errors}:</h3>
+	<div class="baseHtml errors">
+		<ol><li>{xen:phrase hex_no_license_validation_token_found_installupgrade}</li></ol>
+	</div>
+</div>]]></template>
+    <template title="hex_object_field_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_object_field}</xen:title>
+
+<xen:form action="{xen:adminlink 'object-fields/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_outdated_addons_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_outdated_add_ons_installupgrade}</xen:title>
+
+<xen:topctrl>
+	<a href="{xen:adminlink 'add-ons/install'}" class="button">+ {xen:phrase install_add_on}</a>
+	<xen:if is="{$debugMode}"><a href="{xen:adminlink 'add-ons/add'}" class="button">+ {xen:phrase create_add_on}</a></xen:if>
+</xen:topctrl>
+
+<xen:require css="filter_list.css" />
+<xen:require js="js/xenforo/filter_list.js" />
+
+<xen:if is="{$broadcast}">
+	<xen:require css="hex_broadcast_installupgrade.css" />
+	<xen:include template="hex_broadcast_installupgrade" />
+</xen:if>
+<xen:if is="{$errorString}">
+	<div class="section secondaryContent">{$errorString}</div>
+</xen:if>
+
+<xen:form action="{xen:adminlink add-ons/upgrade}" class="section">
+
+	<xen:if is="{$addOns}">
+		<h2 class="subHeading">
+			<xen:include template="filter_list_controls" />
+			{xen:phrase hex_outdated_add_ons_installupgrade}
+		</h2>
+
+		<ol class="FilterList">
+			<xen:foreach loop="$addOns" key="$addOnId" value="$addOn">
+				<xen:listitem id="{$addOn.addon_id}"
+					class="{xen:if {$addOn.canUpgrade}, 'canUpgrade'}"
+					selectable="true"
+					selectname="addon_ids[]"
+					label="{$addOn.title}"
+					snippet="{$addOn.version_string}"
+					href="{xen:adminlink 'add-ons/upgrade', $addOn}"
+					tooltip="{xen:phrase add_on_id_version_id, 'addon_id={$addOn.addon_id}', 'version_id={$addOn.version_id}'}">
+					<xen:html>
+						<a href="{xen:adminlink 'add-ons/edit-url', $addOn}" class="secondaryContent OverlayTrigger">{xen:phrase hex_edit_url_installupgrade}</a>
+					</xen:html>
+				</xen:listitem>
+			</xen:foreach>
+		</ol>
+
+		<p class="sectionFooter">{xen:phrase showing_x_of_y_items, 'count=<span class="FilterListCount">{xen:count $addOns}</span>', 'total={xen:count $addOns}'}</p>
+
+		<div class="ctrlUnit">
+			<input type="submit" class="button" value="{xen:phrase hex_upgrade_addons_installupgrade}" />
+			
+			<input type="hidden" name="_xfConfirm" value="1" />
+		</div>
+	<xen:else />
+		<div class="noResults">{xen:phrase hex_all_add_ons_are_up_to_date_installupgrade}</div>
+	</xen:if>
+</xen:form>
+
+<script type="text/javascript">
+<!--
+$(function()
+{
+	$('label.selectListItem input').attr("disabled", true);
+	$('li.canUpgrade label.selectListItem input').removeAttr("disabled");
+});
+//-->
+</script>]]></template>
+    <template title="hex_outdated_addons_installupgrade.css"><![CDATA[.outdatedAddOns
+{
+	font-weight: bold;
+	font-size: 9px;
+	color: white;
+	background-color: #e03030;
+	padding: 0 3px;
+	border-radius: 2px;
+	line-height: 16px;
+	min-width: 12px;
+	_width: 12px;
+	text-align: center;
+	text-shadow: none;
+	white-space: nowrap;
+	word-wrap: normal;
+	box-shadow: 2px 2px 5px rgba(0,0,0, 0.25);
+	height: 16px;
+	margin-left: 2px;
+	vertical-align: text-top;
+}]]></template>
+    <template title="hex_post_field_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_post_field}</xen:title>
+
+<xen:form action="{xen:adminlink 'post-fields/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_resource_field_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_resource_field}</xen:title>
+
+<xen:form action="{xen:adminlink 'resource-fields/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_smilie_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_smilies_smilieimporter}</xen:title>
+
+<xen:form action="{xen:adminlink 'smilies/import-xml'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="overwrite" value="{$overwrite}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_social_forum_field_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_social_forum_field}</xen:title>
+
+<xen:form action="{xen:adminlink 'social-forum-fields/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_style_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_style}</xen:title>
+
+<xen:form action="{xen:adminlink 'styles/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="parent_style_id" value="{$parentStyleId}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_trophy_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_trophies_trophies}</xen:title>
+
+<xen:form action="{xen:adminlink 'trophies/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_upgrade_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_upgrade_xenforo_installupgrade}</xen:title>
+
+<xen:form action="" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase hex_upgrade_xenforo_installupgrade}" />
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_user_field_login_installupgrade"><![CDATA[<xen:title>{xen:phrase import_user_field}</xen:title>
+
+<xen:form action="{xen:adminlink 'user-fields/import'}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+	
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="display_group" value="{$displayGroup}">
+	<input type="hidden" name="overwrite_style_id" value="{$overwriteStyleId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_user_group_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_user_group_usergroups}</xen:title>
+
+<xen:form action="{xen:adminlink user-groups/import}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="overwrite_user_group_id" value="{$overwriteUserGroupId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+    <template title="hex_user_upgrade_login_installupgrade"><![CDATA[<xen:title>{xen:phrase hex_import_user_upgrade_userupgrades}</xen:title>
+
+<xen:form action="{xen:adminlink user-upgrades/import}" autocomplete="off">
+	<xen:include template="hex_login_error_panel_helper_installupgrade" />
+
+	<xen:submitunit save="{xen:phrase import}" />
+
+	<input type="hidden" name="target" value="{$target}">
+	<input type="hidden" name="overwrite_user_upgrade_id" value="{$overwriteUserUpgradeId}">
+
+	<input type="hidden" name="status" value="{$status}" />
+	<xen:if is="{$status} == 401">
+		<input type="hidden" name="auth_type" value="{$auth_type}" />
+	</xen:if>
+	<input type="hidden" name="server_file" value="{$server_file}" />
+	<input type="hidden" name="redirect" value="{$redirect}" />
+
+	<input type="hidden" name="_xfConfirm" value="1" />
+</xen:form>]]></template>
+  </admin_templates>
+  <admin_template_modifications>
+    <modification template="addon_list" modification_key="hex_addonList2_installUpgrade" description="Adds uninstall toggle to add-on list." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#</xen:topctrl>.*#s]]></find>
+      <replace><![CDATA[<a href="javascript:" class="button JsOnly" id="UninstallAddOns">{xen:phrase hex_uninstall_addons_installupgrade}</a>
+<a href="javascript:" class="button JsOnly" id="UpgradeAddOns">{xen:phrase hex_upgrade_addons_installupgrade}</a>
+${0}
+<xen:include template="hex_addon_list_toggle_installupgrade" />]]></replace>
+    </modification>
+    <modification template="addon_list" modification_key="hex_addonList3_installUpgrade" description="Adds select checkboxes to add-on list." execution_order="10" enabled="1" action="str_replace">
+      <find><![CDATA[<xen:listitem]]></find>
+      <replace><![CDATA[<xen:listitem selectable="true"
+selectname="addOnId[]"
+class="{xen:if {$addOn.canUpgrade}, 'canUpgrade'}"]]></replace>
+    </modification>
+    <modification template="addon_list" modification_key="hex_addonList_installUpgrade" description="Adds extra links to controls menu in add-on list." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#(<xen:popup title="{xen:phrase controls}" ctrlclass="toolsCtrl">)(.*</xen:popup>)#Us]]></find>
+      <replace><![CDATA[${1}
+<xen:link href="{xen:adminlink 'add-ons/edit-url', $addOn}">{xen:phrase hex_edit_url_installupgrade}</xen:link>
+<xen:link href="{xen:adminlink 'add-ons/rebuild', $addOn}">{xen:phrase hex_rebuild_add_on_installupgrade}</xen:link>
+<xen:link href="{xen:adminlink 'add-ons/download', $addOn}">{xen:phrase hex_download_add_on_installupgrade}</xen:link>
+${2}]]></replace>
+    </modification>
+    <modification template="addon_list" modification_key="hex_addon_list_error_control_installupgrade" description="Adds the error control to the add-on list" execution_order="10" enabled="1" action="str_replace">
+      <find><![CDATA[<xen:popup title="{xen:phrase controls}" ctrlclass="toolsCtrl">]]></find>
+      <replace><![CDATA[<xen:html>
+<xen:include template="hex_addon_list_error_control_installupgrade" />
+</xen:html>
+$0]]></replace>
+    </modification>
+    <modification template="header" modification_key="hex_headerHomeTab_installUpgrade" description="Adds outdated add-on count to 'Home' tab." execution_order="9" enabled="1" action="preg_replace">
+      <find><![CDATA[#(<li[^>]*{xen:if {?\$navigationTab\.selected}?.*)(</a></li>)#Us]]></find>
+      <replace><![CDATA[<xen:if is="{$navigationTab.navigation_id} == 'setup' && {$outdatedAddOnCount}">
+<xen:require css="hex_outdated_addons_installupgrade.css" />
+${1} <span class="outdatedAddOns">{$outdatedAddOnCount}</span>${2}
+<xen:else />
+${1}${2}
+</xen:if>]]></replace>
+    </modification>
+    <modification template="home" modification_key="hex_home_installUpgrade" description="Adds broadcast and active members to home." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#^.*<a href="{xen:adminlink users/list}"><span class="label">{xen:phrase total_members}:</span> <strong>{xen:number \$users.total}</strong></a>#Us]]></find>
+      <replace><![CDATA[<xen:if is="{$installUpgradeBroadcast}">
+	<xen:include template="hex_broadcast_installupgrade">
+		<xen:map from="$installUpgradeBroadcast" to="$broadcast" />
+	</xen:include>
+</xen:if>
+${0}
+<a href="{xen:adminlink users/list}"><span class="label">{xen:phrase hex_active_members_installupgrade}:</span> <strong>{xen:number $users.active}</strong></a>]]></replace>
+    </modification>
+    <modification template="hex_hotspot_import_hotspots" modification_key="hex_hotspotImport_InstallUpgrade" description="Adds 'install from file on server' option to hotspot import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="addon_install" modification_key="hex_installUpgrade_addOnInstall" description="Adds the multiple-upload box to add-on install." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload_file" />\s*<xen:textboxunit label="[^"]*" name="server_file" />#Us]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload_file">{xen:phrase install_from_uploaded_file}:</label></dt>
+	<dd>
+		<input type="file" name="upload_file[]" id="ctrl_upload_file" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_install_from_url_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink add-ons/search-filename}" />]]></replace>
+    </modification>
+    <modification template="addon_upgrade" modification_key="hex_installUpgrade_addOnUpgrade" description="Adds the upgrade URL to the add-on upgrade screen." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload_file" />\s*<xen:textboxunit label="[^"]*" name="server_file" />#Us]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload_file">{xen:phrase upgrade_from_uploaded_file}:</label></dt>
+	<dd>
+		<input type="file" name="upload_file[]" id="ctrl_upload_file" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase upgrade_from_file_on_server}:" name="server_file" value="{$addOn.install_upgrade_filename}" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="language_import" modification_key="hex_languageImport_InstallUpgrade" description="Adds 'install from file on server' option to language import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="hex_moderator_import_moderators" modification_key="hex_moderatorImport_InstallUpgrade" description="Adds 'install from file on server' option to moderator import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="object_field_import" modification_key="hex_objectFieldImport_InstallUpgrade" description="Adds 'install from file on server' option to object field import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="post_field_import" modification_key="hex_postFieldImport_InstallUpgrade" description="Adds 'install from file on server' option to post field import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="resource_field_import" modification_key="hex_resourceFieldImport_InstallUpgrade" description="Adds 'install from file on server' option to resource field import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="sidenav_entry" modification_key="hex_sideNavEntryOutdatedAddOns_installUpgrade" description="Adds outdated add-ons count to side navigation." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#(<li.*)(</a>.*</li>)#Us]]></find>
+      <replace><![CDATA[${1}
+<xen:if is="{$link.navigation_id} == 'outdatedAddOns' && {$xenOptions.hex_installUpgrade_showOutdatedBalloon}">
+<xen:callback class="Hex_InstallUpgrade_Listener_TemplateCallback" method="getOutdatedAddOnCount" />
+</xen:if>
+${2}]]></replace>
+    </modification>
+    <modification template="sidebar_installed_addons" modification_key="hex_sidebarInstalledAddons_installUpgrade" description="Adds create add-on link to installed add-ons list." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<div class="sectionFooter">#Us]]></find>
+      <replace><![CDATA[${0}
+<xen:if is="{$debugMode}">
+	<a href="{xen:adminlink add-ons/add}">{xen:phrase create_add_on}</a>
+	&nbsp;
+</xen:if>]]></replace>
+    </modification>
+    <modification template="hex_smilie_import_smilieimporter" modification_key="hex_smilieImport_InstallUpgrade" description="Adds 'install from file on server' option to smilie import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="smilie_import" modification_key="hex_smilieImport_installUpgrade" description="Adds 'install from file on server' option to smilie import." execution_order="10" enabled="0" action="preg_replace">
+      <find><![CDATA[#<xen:radiounit label="" name="mode" value="upload">.*</xen:radiounit>#Us]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt></dt>
+	<dd>
+		<ul>
+			<li><label for="ctrl_mode_upload"><input type="radio" name="mode" value="upload" class="Disabler" id="ctrl_mode_upload" checked=""> {xen:phrase hex_import_from_uploaded_file_installupgrade}:</label>
+				<ul id="ctrl_mode_upload_Disabler" class="disablerList">
+					<li><input type="file" name="upload[]" class="" id="ctrl_upload" multiple="multiple"></li>
+				</ul>
+			</li>
+			<li><label for="ctrl_mode_serverfile"><input type="radio" name="mode" value="serverfile" class="Disabler" id="ctrl_mode_serverfile"> {xen:phrase hex_import_from_file_on_server_installupgrade}:</label>
+				<ul id="ctrl_mode_serverfile_Disabler" class="disablerList disabled">
+					<li><input type="text" name="server_file" class="textCtrl disabled{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, ' AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" id="ctrl_server_file" disabled=""></li>
+				</ul>
+			</li>
+			<li><label for="ctrl_mode_directory"><input type="radio" name="mode" value="directory" class="Disabler" id="ctrl_mode_directory"> {xen:phrase import_from_directory_on_server}</label> <p class="hint">{xen:phrase smilie_pre_import_directory_explain}</p>
+				<ul id="ctrl_mode_directory_Disabler" class="disablerList disabled">
+					<li><input type="text" name="directory" placeholder="styles/default/xenforo/smilies..." class="textCtrl disabled" id="ctrl_directory" disabled=""></li>
+				</ul>
+			</li>
+		</ul>
+	</dd>
+</dl>]]></replace>
+    </modification>
+    <modification template="social_forum_field_import" modification_key="hex_socialForumFieldImport_InstallUpgrade" description="Adds 'install from file on server' option to social forum field import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="style_import" modification_key="hex_styleImport_InstallUpgrade" description="Adds 'install from file on server' option to style import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="thread_field_import" modification_key="hex_threadFieldImport_InstallUpgrade" description="Adds 'install from file on server' option to thread field import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="hex_trophy_import_trophies" modification_key="hex_trophyImport_InstallUpgrade" description="Adds 'install from file on server' option to trophy import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="user_field_import" modification_key="hex_userFieldImport_InstallUpgrade" description="Adds 'install from file on server' option to user field import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="hex_user_group_import_usergroups" modification_key="hex_userGroupImport_InstallUpgrade" description="Adds 'install from file on server' option to user group import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+    <modification template="hex_user_upgrade_import_userupgrades" modification_key="hex_userUpgradeImport_InstallUpgrade" description="Adds 'install from file on server' option to user upgrade import." execution_order="10" enabled="1" action="preg_replace">
+      <find><![CDATA[#<xen:uploadunit label="[^"]*" name="upload" />#U]]></find>
+      <replace><![CDATA[<dl class="ctrlUnit">
+	<dt><label for="ctrl_upload">{xen:phrase hex_import_from_uploaded_file_installupgrade}:</label></dt>
+	<dd>
+		<input type="file" name="upload[]" id="ctrl_upload" multiple="multiple">
+	</dd>
+</dl>
+<xen:textboxunit label="{xen:phrase hex_import_from_file_on_server_installupgrade}:" name="server_file" inputclass="{xen:if {$xenOptions.hex_installUpgrade_autoCompleteServerFile}, 'AutoComplete AcSingle'}" data-acurl="{xen:adminlink upgrade/search-filename}" />]]></replace>
+    </modification>
+  </admin_template_modifications>
+  <code_events/>
+  <code_event_listeners>
+    <listener event_id="container_admin_params" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_ContainerAdminParams" callback_method="containerAdminParams" active="1" hint="" description=""/>
+    <listener event_id="controller_pre_dispatch" execute_order="10" callback_class="Hex_Listener_ControllerPreDispatch" callback_method="controllerPreDispatch" active="1" hint="" description=""/>
+    <listener event_id="file_health_check" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_FileHealthCheck" callback_method="fileHealthCheck" active="1" hint="" description=""/>
+    <listener event_id="init_dependencies" execute_order="10" callback_class="Hex_Listener_InitDependencies" callback_method="initDependencies" active="1" hint="" description=""/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="0" hint="XenForo_DataWriter_AddOn" description="XenForo_DataWriter_AddOn (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_AddOn" description="XenForo_ControllerAdmin_AddOn (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Language" description="XenForo_ControllerAdmin_Language (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Style" description="XenForo_ControllerAdmin_Style (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassModel" active="0" hint="XenForo_Model_AddOn" description="XenForo_Model_AddOn (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="Hex_CustomFields_ControllerAdmin_PostField" description="Hex_CustomFields_ControllerAdmin_PostField (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="Hex_CustomFields_ControllerAdmin_ResourceField" description="Hex_CustomFields_ControllerAdmin_ResourceField (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="Hex_CustomFields_ControllerAdmin_SocialForumField" description="Hex_CustomFields_ControllerAdmin_SocialForumField (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="Hex_CustomFields_ControllerAdmin_ThreadField" description="Hex_CustomFields_ControllerAdmin_ThreadField (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="Hex_ObjectFields_ControllerAdmin_ObjectField" description="Hex_ObjectFields_ControllerAdmin_ObjectField (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="Hex_Hotspots_ControllerAdmin_Hotspot" description="Hex_Hotspots_ControllerAdmin_Hotspot (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Admin" description="XenForo_ControllerAdmin_Admin (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Home" description="XenForo_ControllerAdmin_Home (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Login" description="XenForo_ControllerAdmin_Login (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassModel" active="0" hint="XenForo_Model_Counters" description="XenForo_Model_Counters (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="0" hint="XenForo_DataWriter_Template" description="XenForo_DataWriter_Template (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="0" hint="XenForo_DataWriter_AdminTemplate" description="XenForo_DataWriter_AdminTemplate (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="0" hint="XenForo_DataWriter_AdminTemplateModification" description="XenForo_DataWriter_AdminTemplateModification (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="0" hint="XenForo_DataWriter_TemplateModification" description="XenForo_DataWriter_TemplateModification (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="0" hint="XenForo_DataWriter_Phrase" description="XenForo_DataWriter_Phrase (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_TemplateModification" description="XenForo_ControllerAdmin_TemplateModification (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="20" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_UserUpgrade" description="XenForo_ControllerAdmin_UserUpgrade (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="20" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Smilie" description="XenForo_ControllerAdmin_Smilie (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="20" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Moderator" description="XenForo_ControllerAdmin_Moderator (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="20" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_Trophy" description="XenForo_ControllerAdmin_Trophy (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="20" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_UserField" description="XenForo_ControllerAdmin_UserField (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class" execute_order="20" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="0" hint="XenForo_ControllerAdmin_UserGroup" description="XenForo_ControllerAdmin_UserGroup (For XenForo 1.2 and above)" compatibility_switch="1"/>
+    <listener event_id="load_class_controller" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassController" active="1" hint="" description="(For XenForo 1.1 and below)" compatibility_switch="1"/>
+    <listener event_id="load_class_datawriter" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassDataWriter" active="1" hint="" description="(For XenForo 1.1 and below)" compatibility_switch="1"/>
+    <listener event_id="load_class_model" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_LoadClass" callback_method="loadClassModel" active="1" hint="" description="(For XenForo 1.1 and below)" compatibility_switch="1"/>
+    <listener event_id="template_hook" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_TemplateHook" callback_method="templateHook" active="1" hint="" description="(For XenForo 1.1 and below)" compatibility_switch="1"/>
+    <listener event_id="template_post_render" execute_order="10" callback_class="Hex_InstallUpgrade_Listener_TemplatePostRender" callback_method="templatePostRender" active="1" hint="" description="(For XenForo 1.1 and below)" compatibility_switch="1"/>
+  </code_event_listeners>
+  <cron>
+    <entry entry_id="hex_iuUpdateCheck" cron_class="Hex_InstallUpgrade_CronEntry_UpdateCheck" cron_method="checkForUpdates" active="1"><![CDATA[{"day_type":"dom","dom":[-1],"hours":[21],"minutes":[4]}]]></entry>
+  </cron>
+  <email_templates/>
+  <email_template_modifications/>
+  <optiongroups>
+    <group group_id="hex_installUpgrade" display_order="2000" debug_only="0"/>
+    <group group_id="hex_installUpgrade_ftp" display_order="25" debug_only="0"/>
+    <option option_id="hex_installUpgrade_allowBroadcast" edit_format="callback" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params>Hex_InstallUpgrade_Option_PremiumOnly::renderOnOff</edit_format_params>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="500"/>
+    </option>
+    <option option_id="hex_installUpgrade_allowSendMemberCount" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="650"/>
+    </option>
+    <option option_id="hex_installUpgrade_allowSkipXmlImport" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="240"/>
+    </option>
+    <option option_id="hex_installUpgrade_allowUnsupported" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value/>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="20"/>
+    </option>
+    <option option_id="hex_installUpgrade_autoCompleteServerFile" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="300"/>
+    </option>
+    <option option_id="hex_installUpgrade_bypassLicenseCheck" edit_format="callback" data_type="boolean" can_backup="1">
+      <default_value>0</default_value>
+      <edit_format_params>Hex_InstallUpgrade_Option_PremiumOnly::renderOnOff</edit_format_params>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="50"/>
+    </option>
+    <option option_id="hex_installUpgrade_cachesOnRebuild" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="250"/>
+    </option>
+    <option option_id="hex_installUpgrade_checkNonHexAddOns" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="600"/>
+    </option>
+    <option option_id="hex_installUpgrade_defaultHexInstall" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="2000"/>
+    </option>
+    <option option_id="hex_installUpgrade_defaultVersions" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="2010"/>
+    </option>
+    <option option_id="hex_installUpgrade_ftpHost" edit_format="textbox" data_type="string" can_backup="1">
+      <default_value/>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade_ftp" display_order="10"/>
+    </option>
+    <option option_id="hex_installUpgrade_ftpPassword" edit_format="textbox" data_type="string" can_backup="1">
+      <default_value/>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade_ftp" display_order="40"/>
+    </option>
+    <option option_id="hex_installUpgrade_ftpPath" edit_format="textbox" data_type="string" can_backup="1">
+      <default_value>/</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade_ftp" display_order="20"/>
+    </option>
+    <option option_id="hex_installUpgrade_ftpUsername" edit_format="textbox" data_type="string" can_backup="1">
+      <default_value/>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade_ftp" display_order="30"/>
+    </option>
+    <option option_id="hex_installUpgrade_hexLoginToken" edit_format="callback" data_type="string" can_backup="1">
+      <default_value/>
+      <edit_format_params>Hex_InstallUpgrade_Option_HiddenOption::renderOption</edit_format_params>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="1"/>
+    </option>
+    <option option_id="hex_installUpgrade_licenseKey" edit_format="textbox" data_type="string" can_backup="1">
+      <default_value/>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="10"/>
+    </option>
+    <option option_id="hex_installUpgrade_licenseValidationToken" edit_format="textbox" data_type="string" can_backup="1">
+      <default_value/>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="1"/>
+    </option>
+    <option option_id="hex_installUpgrade_noAddOnCacheRebuild" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>0</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="220"/>
+    </option>
+    <option option_id="hex_installUpgrade_onlyCheckListedAddOns" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>0</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="410"/>
+    </option>
+    <option option_id="hex_installUpgrade_outdatedEnabledOnly" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="420"/>
+    </option>
+    <option option_id="hex_installUpgrade_overrideNoDismiss" edit_format="onoff" data_type="boolean" can_backup="1" validation_class="Hex_InstallUpgrade_Option_Undismiss" validation_method="undismiss">
+      <default_value>0</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="520"/>
+    </option>
+    <option option_id="hex_installUpgrade_premiumAddOns" edit_format="callback" data_type="array" can_backup="1">
+      <default_value/>
+      <edit_format_params>Hex_InstallUpgrade_Option_HiddenOption::renderOption</edit_format_params>
+      <sub_options>*</sub_options>
+      <relation group_id="hex_installUpgrade" display_order="1"/>
+    </option>
+    <option option_id="hex_installUpgrade_showLastBroadcastDate" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="510"/>
+    </option>
+    <option option_id="hex_installUpgrade_showOutdatedBalloon" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="400"/>
+    </option>
+    <option option_id="hex_installUpgrade_storeCredentials" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="100"/>
+    </option>
+    <option option_id="hex_installUpgrade_uniqueIdentifier" edit_format="callback" data_type="string" can_backup="1">
+      <default_value>JCOa6aZw1HZuUjcrGeUuIL3iOF8El7</default_value>
+      <edit_format_params>Hex_InstallUpgrade_Option_HiddenOption::renderOption</edit_format_params>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="10000"/>
+    </option>
+    <option option_id="hex_installUpgrade_upgradeFromInstall" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="200"/>
+    </option>
+    <option option_id="hex_installUpgrade_useStoredCredentials" edit_format="onoff" data_type="boolean" can_backup="1">
+      <default_value>1</default_value>
+      <edit_format_params/>
+      <sub_options/>
+      <relation group_id="hex_installUpgrade" display_order="110"/>
+    </option>
+  </optiongroups>
+  <permissions>
+    <permission_groups/>
+    <permissions/>
+    <interface_groups/>
+  </permissions>
+  <phrases>
+    <phrase title="admin_navigation_outdatedAddOns" version_id="1373075891" version_string="1.0.1"><![CDATA[Outdated Add-ons]]></phrase>
+    <phrase title="admin_navigation_rebuildAddOnCaches" version_id="1379959331" version_string="1.0.5"><![CDATA[Rebuild Add-on Caches]]></phrase>
+    <phrase title="admin_navigation_rebuildXenForo" version_id="1400513703" version_string="1.1.2"><![CDATA[Rebuild XenForo]]></phrase>
+    <phrase title="admin_navigation_storedCredentials" version_id="1420458987" version_string="1.1.9"><![CDATA[Stored Credentials]]></phrase>
+    <phrase title="admin_navigation_upgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[Upgrade]]></phrase>
+    <phrase title="admin_navigation_upgradeXenForo" version_id="1373075891" version_string="1.0.1"><![CDATA[Upgrade XenForo]]></phrase>
+    <phrase title="admin_permission_installUpgradeCreds" version_id="1402650867" version_string="1.1.4"><![CDATA[Manage install and upgrade credentials]]></phrase>
+    <phrase title="cron_entry_hex_iuUpdateCheck" version_id="1373974615" version_string="1.0.3"><![CDATA[Check for Add-On Updates]]></phrase>
+    <phrase title="hex_active_members_installupgrade" version_id="1423738336" version_string="1.4.5"><![CDATA[Active Members]]></phrase>
+    <phrase title="hex_addon_X_could_not_check_for_updates_http_err_installupgrade" version_id="1442962474" version_string="1.4.12"><![CDATA[The Add-on {addOn} could not check for updates because it received a {errorNo} error during the HTTP request. Update checking for this add-on will be disabled until you edit the URL.]]></phrase>
+    <phrase title="hex_addon_X_could_not_check_for_updates_not_res_installupgrade" version_id="1442962474" version_string="1.4.12"><![CDATA[The Add-on {addOn} could not check for updates because you did not link to a resource manager page]]></phrase>
+    <phrase title="hex_all_add_ons_are_up_to_date_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[All add-ons are up to date.]]></phrase>
+    <phrase title="hex_are_you_sure_you_want_to_dismiss_broadcast_installupgrade" version_id="1423556483" version_string="1.4.3"><![CDATA[Are you sure you want to dismiss this broadcast?]]></phrase>
+    <phrase title="hex_available_versions_elipses_installupgrade" version_id="1424113738" version_string="1.4.6"><![CDATA[Available Versions...]]></phrase>
+    <phrase title="hex_callbacks_have_been_disabled_installupgrade" version_id="1423556483" version_string="1.4.3"><![CDATA[Callbacks have been disabled.]]></phrase>
+    <phrase title="hex_check_for_solutions_installupgrade" version_id="1406129872" version_string="1.1.7"><![CDATA[Check for Solutions]]></phrase>
+    <phrase title="hex_confirm_deletion_of_stored_credentials_installupgrade" version_id="1420900571" version_string="1.3.2"><![CDATA[Confirm Deletion of Stored Credentials]]></phrase>
+    <phrase title="hex_delete_stored_credentials_installupgrade" version_id="1420900571" version_string="1.3.2"><![CDATA[Delete Stored Credentials]]></phrase>
+    <phrase title="hex_dismiss_broadcast_installupgrade" version_id="1423556483" version_string="1.4.3"><![CDATA[Dismiss Broadcast]]></phrase>
+    <phrase title="hex_download_add_on_installupgrade" version_id="1386694121" version_string="1.0.6"><![CDATA[Download Add-on]]></phrase>
+    <phrase title="hex_edit_url_installupgrade" version_id="1423232417" version_string="1.4.1"><![CDATA[Edit URL]]></phrase>
+    <phrase title="hex_encrypted_installupgrade" version_id="1426792424" version_string="1.4.8"><![CDATA[Encrypted]]></phrase>
+    <phrase title="hex_encrypt_login_credentials_installupgrade" version_id="1426676102" version_string="1.4.7"><![CDATA[Encrypt Login Credentials]]></phrase>
+    <phrase title="hex_files_were_skipped_installupgrade" version_id="1420740045" version_string="1.2.0"><![CDATA[Unable to copy files. Try adding/checking your <a href="admin.php?options/list/hex_installUpgrade_ftp">FTP login details</a>.]]></phrase>
+    <phrase title="hex_host_name_installupgrade" version_id="1420458987" version_string="1.1.9"><![CDATA[Hostname]]></phrase>
+    <phrase title="hex_if_selected_username_and_password_will_be_stored_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[If selected, the username and password entered will be stored unencrypted in the database and used for all future download requests from this website.]]></phrase>
+    <phrase title="hex_import_from_file_on_server_installupgrade" version_id="0" version_string="1.0.0"><![CDATA[Import from file on server]]></phrase>
+    <phrase title="hex_import_from_uploaded_file_installupgrade" version_id="1391116741" version_string="1.0.7"><![CDATA[Import from uploaded file]]></phrase>
+    <phrase title="hex_install_and_upgrade_add_ons_installupgrade" version_id="1424113738" version_string="1.4.6"><![CDATA[Install and Upgrade Add-ons]]></phrase>
+    <phrase title="hex_install_from_url_file_on_server_installupgrade" version_id="1420900571" version_string="1.3.1"><![CDATA[Install from URL/title/file on server]]></phrase>
+    <phrase title="hex_install_multiple_add_ons_installupgrade" version_id="1424113738" version_string="1.4.6"><![CDATA[Install Multiple Add-ons]]></phrase>
+    <phrase title="hex_invalid_license_validation_token_installupgrade" version_id="1396362263" version_string="1.1.0"><![CDATA[The license token is invalid or has changed. Please try upgrading again and select a valid license.]]></phrase>
+    <phrase title="hex_last_update_installupgrade" version_id="1420458987" version_string="1.1.9"><![CDATA[Last update]]></phrase>
+    <phrase title="hex_license_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[License]]></phrase>
+    <phrase title="hex_no_license_validation_token_found_installupgrade" version_id="1396362263" version_string="1.1.0"><![CDATA[No license validation token found. Please enter a token <a href="admin.php?options/list/hex_installUpgrade">here</a>.]]></phrase>
+    <phrase title="hex_no_resource_found_at_specified_url_installupgrade" version_id="0" version_string="1.0.0"><![CDATA[No resource can be found at the specified URL.]]></phrase>
+    <phrase title="hex_outdated_add_ons_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[Outdated Add-ons]]></phrase>
+    <phrase title="hex_path_installupgrade" version_id="1420458987" version_string="1.1.9"><![CDATA[Path]]></phrase>
+    <phrase title="hex_please_confirm_want_to_delete_stored_credentials_installupgrade" version_id="1429801096" version_string="1.4.9"><![CDATA[Please confirm that you want to delete the following stored credentials]]></phrase>
+    <phrase title="hex_please_provide_login_for_x_installupgrade" version_id="0" version_string="1.0.0"><![CDATA[Please provide login details for {host}.]]></phrase>
+    <phrase title="hex_rebuild_add_on_installupgrade" version_id="1386694121" version_string="1.0.6"><![CDATA[Rebuild Add-on]]></phrase>
+    <phrase title="hex_save_login_credentials_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[Save login credentials]]></phrase>
+    <phrase title="hex_skipped_files_installupgrade" version_id="1372809184" version_string="1.0.0"><![CDATA[Skipped Files]]></phrase>
+    <phrase title="hex_solution_installupgrade" version_id="1406129872" version_string="1.1.7"><![CDATA[Solution]]></phrase>
+    <phrase title="hex_stored_credentials_installupgrade" version_id="1420458987" version_string="1.1.9"><![CDATA[Stored Credentials]]></phrase>
+    <phrase title="hex_there_are_no_updated_versions_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[There are no updated versions available for this license.]]></phrase>
+    <phrase title="hex_to_store_encrypted_passwords_log_out_installupgrade" version_id="1426842992" version_string="1.4.8"><![CDATA[To store encrypted passwords, log out of the Admin Control Panel and log back in to generate a new encryption key.]]></phrase>
+    <phrase title="hex_unable_to_create_temp_dir_installupgrade" version_id="1400513703" version_string="1.1.2"><![CDATA[Unable to create temporary directory. Please check your server permissions.]]></phrase>
+    <phrase title="hex_uninstall_addons_installupgrade" version_id="1396531442" version_string="1.1.0"><![CDATA[Uninstall Add-ons]]></phrase>
+    <phrase title="hex_upgrade_addons_installupgrade" version_id="1405070865" version_string="1.1.4"><![CDATA[Upgrade Add-ons]]></phrase>
+    <phrase title="hex_upgrade_url_installupgrade" version_id="1423232417" version_string="1.4.1"><![CDATA[Upgrade URL]]></phrase>
+    <phrase title="hex_upgrade_xenforo_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[Upgrade XenForo]]></phrase>
+    <phrase title="hex_url_installupgrade" version_id="1420458987" version_string="1.1.9"><![CDATA[URL]]></phrase>
+    <phrase title="hex_version_installupgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[Version]]></phrase>
+    <phrase title="hex_xml_to_import_installupgrade" version_id="0" version_string="1.0.0"><![CDATA[XML to import]]></phrase>
+    <phrase title="option_group_hex_installUpgrade" version_id="1373075891" version_string="1.0.1"><![CDATA[[#] Install and Upgrade]]></phrase>
+    <phrase title="option_group_hex_installUpgrade_description" version_id="1373075891" version_string="1.0.1"><![CDATA[Options for the [#] Install and Upgrade add-on.]]></phrase>
+    <phrase title="option_group_hex_installUpgrade_ftp" version_id="1420740045" version_string="1.2.0"><![CDATA[FTP Login Details]]></phrase>
+    <phrase title="option_group_hex_installUpgrade_ftp_description" version_id="1420740045" version_string="1.2.0"><![CDATA[Allow files to be extracted over FTP.]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowBroadcast" version_id="1420458987" version_string="1.1.9"><![CDATA[Allow hexthemes.com to broadcast messages on home screen]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowBroadcast_explain" version_id="1420458987" version_string="1.1.9"><![CDATA[Enabling this option will allow hexthemes.com to show useful messages on your home screen. These will be updated whenever this add-on makes a request to the hexthemes.com servers. Broadcasts will include important security updates, reminders to update XenForo or key add-ons and promotions.]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowSendMemberCount" version_id="1423668238" version_string="1.4.5"><![CDATA[Allow member count to be sent to Hex servers]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowSendMemberCount_explain" version_id="1423668238" version_string="1.4.5"><![CDATA[If this option is enabled and you have linked your hexthemes.com account your member count will automatically be shared with the hexthemes.com server to verify any subscription you have. If you do not have your hexthemes.com account details stored, your member count will never be automatically sent to hexthemes.com servers.]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowSkipXmlImport" version_id="1411560632" version_string="1.1.7"><![CDATA[Skip XML import if add-on version ID is unchanged]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowSkipXmlImport_explain" version_id="1420458987" version_string="1.1.9"><![CDATA[Enabling this option will make it quicker to update add-ons if only the files have changed and the XML is the same. Note that if the version ID is 1, the XML will always be imported.]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowUnsupported" version_id="1373075891" version_string="1.0.1"><![CDATA[Allow upgrade to unsupported XenForo versions]]></phrase>
+    <phrase title="option_hex_installUpgrade_allowUnsupported_explain" version_id="1373075891" version_string="1.0.1"><![CDATA[Checking this option will allow upgrade to versions of XenForo marked as unsupported, such as alpha or beta versions. It is not recommended to select this option on production sites.]]></phrase>
+    <phrase title="option_hex_installUpgrade_autoCompleteServerFile" version_id="1401871990" version_string="1.1.3"><![CDATA[Enable AutoComplete for server files]]></phrase>
+    <phrase title="option_hex_installUpgrade_autoCompleteServerFile_explain" version_id="1420900571" version_string="1.3.1"><![CDATA[Disabling this option will stop suggestions appearing as you type a name of a server file when installing, importing or upgrading a resource.]]></phrase>
+    <phrase title="option_hex_installUpgrade_bypassLicenseCheck" version_id="1402584571" version_string="1.1.4"><![CDATA[Bypass XenForo license check]]></phrase>
+    <phrase title="option_hex_installUpgrade_bypassLicenseCheck_explain" version_id="1402584571" version_string="1.1.4"><![CDATA[Enabling this option will allow a XenForo license to be used even if the URL associated with that license does not match the URL of the site. This option should only be used for development sites, as per the <a href="http://xenforo.com/license-agreement/">XenForo License Agreement</a>.]]></phrase>
+    <phrase title="option_hex_installUpgrade_cachesOnRebuild" version_id="1411562966" version_string="1.1.9"><![CDATA[Always rebuild caches after add-on rebuild]]></phrase>
+    <phrase title="option_hex_installUpgrade_cachesOnRebuild_explain" version_id="1411562966" version_string="1.1.9"><![CDATA[Disabling this option will stop caches from being rebuilt when rebuilding an add-on.]]></phrase>
+    <phrase title="option_hex_installUpgrade_checkNonHexAddOns" version_id="1423648976" version_string="1.4.4"><![CDATA[Check for outdated non-Hex add-ons]]></phrase>
+    <phrase title="option_hex_installUpgrade_checkNonHexAddOns_explain" version_id="1423648976" version_string="1.4.4"><![CDATA[Disabling this option will stop your non-Hex add-ons from being checked for being outdated.]]></phrase>
+    <phrase title="option_hex_installUpgrade_defaultHexInstall" version_id="1380978500" version_string="1.0.6"><![CDATA[Set default installer for new add-ons to Hex installer]]></phrase>
+    <phrase title="option_hex_installUpgrade_defaultHexInstall_explain" version_id="1380978500" version_string="1.0.6"><![CDATA[When creating a new add-on in debug mode, this will automatically fill in the install and uninstall boxes with the appropriate methods from the Hex_Install class.]]></phrase>
+    <phrase title="option_hex_installUpgrade_defaultVersions" version_id="1380978500" version_string="1.0.6"><![CDATA[Set default version for new add-ons to 1.0.0 and current timestamp]]></phrase>
+    <phrase title="option_hex_installUpgrade_defaultVersions_explain" version_id="1380978500" version_string="1.0.6"><![CDATA[When creating a new add-on in debug mode, this will automatically fill in the version string and integer fields with 1.0.0 and the current timestamp, respectively.]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpHost" version_id="1420630848" version_string="1.2.0"><![CDATA[FTP Hostname]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpHost_explain" version_id="1420630848" version_string="1.2.0"><![CDATA[If entered, imported ZIP files will always be extracted by FTP. We recommend this if the default method causes permission errors.]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpPassword" version_id="1420630848" version_string="1.2.0"><![CDATA[FTP Password]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpPassword_explain" version_id="1420630848" version_string="1.2.0"><![CDATA[]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpPath" version_id="1420630848" version_string="1.2.0"><![CDATA[FTP Path]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpPath_explain" version_id="1420630848" version_string="1.2.0"><![CDATA[This is the path to your root directory (the folder which contains the admin.php and index.php files and your js, library and styles directories.]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpUsername" version_id="1420630848" version_string="1.2.0"><![CDATA[FTP Username]]></phrase>
+    <phrase title="option_hex_installUpgrade_ftpUsername_explain" version_id="1420630848" version_string="1.2.0"><![CDATA[]]></phrase>
+    <phrase title="option_hex_installUpgrade_hexLoginToken" version_id="1426792424" version_string="1.4.8"><![CDATA[Login Token for hexthemes.com]]></phrase>
+    <phrase title="option_hex_installUpgrade_hexLoginToken_explain" version_id="1426792424" version_string="1.4.8"><![CDATA[]]></phrase>
+    <phrase title="option_hex_installUpgrade_licenseKey" version_id="1373075891" version_string="1.0.1"><![CDATA[XenForo License Key]]></phrase>
+    <phrase title="option_hex_installUpgrade_licenseKey_explain" version_id="1421516377" version_string="1.4.0"><![CDATA[This token will be fetched automatically when you attempt to Upgrade XenForo. It is not required for installing or upgrading anything else.]]></phrase>
+    <phrase title="option_hex_installUpgrade_licenseValidationToken" version_id="1396362263" version_string="1.1.0"><![CDATA[XenForo License Validation Token]]></phrase>
+    <phrase title="option_hex_installUpgrade_licenseValidationToken_explain" version_id="1396362263" version_string="1.1.0"><![CDATA[You can get a license validation token for your XenForo license from the following URL: <a href="https://xenforo.com/customers/">https://xenforo.com/customers/</a>.<br/>
+This token will be fetched automatically when you attempt to Upgrade XenForo. It is not required for installing or upgrading anything else.]]></phrase>
+    <phrase title="option_hex_installUpgrade_noAddOnCacheRebuild" version_id="1406129872" version_string="1.1.7"><![CDATA[Never rebuild caches after add-on install]]></phrase>
+    <phrase title="option_hex_installUpgrade_noAddOnCacheRebuild_explain" version_id="1379950325" version_string="1.0.5"><![CDATA[Selecting this option will stop the cache rebuild process after add-ons are installed/upgraded. It is not recommended to select this option as it may mean that add-ons installed are unusable until the cache is rebuilt.]]></phrase>
+    <phrase title="option_hex_installUpgrade_onlyCheckListedAddOns" version_id="1421516377" version_string="1.3.2"><![CDATA[Only show add-ons as outdated if listed on xenforo.com resources section]]></phrase>
+    <phrase title="option_hex_installUpgrade_onlyCheckListedAddOns_explain" version_id="1421516377" version_string="1.3.2"><![CDATA[Enabling this option avoids false positives by only showing add-ons as outdated if they are listed in the resources section on xenforo.com. This does not include paid add-ons or some externally linked add-ons.]]></phrase>
+    <phrase title="option_hex_installUpgrade_outdatedEnabledOnly" version_id="1421516377" version_string="1.3.2"><![CDATA[Only show add-ons as outdated if they are enabled]]></phrase>
+    <phrase title="option_hex_installUpgrade_outdatedEnabledOnly_explain" version_id="1421516377" version_string="1.3.2"><![CDATA[Enabling this option removes any disabled add-ons from the list of outdated add-ons.]]></phrase>
+    <phrase title="option_hex_installUpgrade_overrideNoDismiss" version_id="1423556483" version_string="1.4.3"><![CDATA[Override undismissable broadcasts]]></phrase>
+    <phrase title="option_hex_installUpgrade_overrideNoDismiss_explain" version_id="1423556483" version_string="1.4.3"><![CDATA[Enabling this option will allow you to dismiss broadcasts that we consider should never be dismissed. Disabling this option will make the current broadcast visible again if it is undismissable, even if it has been dismissed with this option enabled.]]></phrase>
+    <phrase title="option_hex_installUpgrade_premiumAddOns" version_id="1421516377" version_string="1.3.2"><![CDATA[Premium Add-ons]]></phrase>
+    <phrase title="option_hex_installUpgrade_premiumAddOns_explain" version_id="1421516377" version_string="1.3.2"><![CDATA[]]></phrase>
+    <phrase title="option_hex_installUpgrade_showLastBroadcastDate" version_id="1423474679" version_string="1.4.2"><![CDATA[Show last updated date on all broadcasts]]></phrase>
+    <phrase title="option_hex_installUpgrade_showLastBroadcastDate_explain" version_id="1423474679" version_string="1.4.2"><![CDATA[]]></phrase>
+    <phrase title="option_hex_installUpgrade_showOutdatedBalloon" version_id="1421516377" version_string="1.3.2"><![CDATA[Show number of outdated add-ons in admin navigation]]></phrase>
+    <phrase title="option_hex_installUpgrade_showOutdatedBalloon_explain" version_id="1421516377" version_string="1.3.2"><![CDATA[Disabling this option will remove the alert balloon showing the number of outdated add-ons in the top navigation next to the 'Home' link and in the side navigation next to the 'Outdated Add-ons' link.]]></phrase>
+    <phrase title="option_hex_installUpgrade_storeCredentials" version_id="1373075891" version_string="1.0.1"><![CDATA[Store credentials by default]]></phrase>
+    <phrase title="option_hex_installUpgrade_storeCredentials_explain" version_id="1420458987" version_string="1.1.9"><![CDATA[Selecting this option will check the 'save login credentials' option by default when logging in to an external site using this add-on. Stored credentials can be edited <a href="admin.php?add-ons/stored-credentials/">here</a>.]]></phrase>
+    <phrase title="option_hex_installUpgrade_uniqueIdentifier" version_id="1396344527" version_string="1.0.8"><![CDATA[Unique identifier]]></phrase>
+    <phrase title="option_hex_installUpgrade_uniqueIdentifier_explain" version_id="1396344527" version_string="1.0.8"><![CDATA[]]></phrase>
+    <phrase title="option_hex_installUpgrade_upgradeFromInstall" version_id="1373075891" version_string="1.0.1"><![CDATA[Allow add-on upgrade from install page]]></phrase>
+    <phrase title="option_hex_installUpgrade_upgradeFromInstall_explain" version_id="1373075891" version_string="1.0.1"><![CDATA[Selecting this option will allow you to upload an XML or archive file of an add-on that is already installed on the Install Add-on screen and, instead of producing an error, it will upgrade the appropriate add-on.]]></phrase>
+    <phrase title="option_hex_installUpgrade_useStoredCredentials" version_id="1373075891" version_string="1.0.1"><![CDATA[Use stored credentials without asking]]></phrase>
+    <phrase title="option_hex_installUpgrade_useStoredCredentials_explain" version_id="1420458987" version_string="1.1.9"><![CDATA[Selecting this option will allow this add-on to attempt to access any external site using stored credentials first without prompting you to check those credentials. This will enable other admins that don't have the Manage Install and Upgrade Credentials admin permission to install, import and upgrade from external sites without being able to see the stored credentials. Stored credentials can be edited <a href="admin.php?add-ons/stored-credentials/">here</a>.]]></phrase>
+  </phrases>
+  <route_prefixes>
+    <route_type type="admin">
+      <prefix original_prefix="upgrade" class="Hex_InstallUpgrade_Route_PrefixAdmin_Upgrade" build_link="data_only"/>
+    </route_type>
+  </route_prefixes>
+  <style_properties/>
+  <templates/>
+  <public_template_modifications>
+    <modification template="footer" modification_key="hex_copyrightNotice_installUpgrade" description="Copyright notice for [#] Install and Upgrade" execution_order="1" enabled="1" action="callback">
+      <find><![CDATA[/{xen:phrase (?:xenforo|extra)_copyright}/]]></find>
+      <replace><![CDATA[Hex_Listener_InitDependencies::copyrightNotice]]></replace>
+    </modification>
+  </public_template_modifications>
+  <bb_code_media_sites/>
+  <bb_codes/>
+</addon>
